@@ -4,6 +4,7 @@
 # Conditional Random Field
 # This code is available under the MIT License.
 # (c)2010-2011 Nakatani Shuyo / Cybozu Labs Inc.
+# reniced by goog@github and add comments.
 
 import numpy
 from scipy import maxentropy
