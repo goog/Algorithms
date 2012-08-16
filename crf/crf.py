@@ -4,7 +4,7 @@
 # Conditional Random Field
 # This code is available under the MIT License.
 # (c)2010-2011 Nakatani Shuyo / Cybozu Labs Inc.
-# reniced by goog@github and add comments.
+#  reniced by chengjie @GDUT.dmir.
 
 import numpy
 from scipy import maxentropy
@@ -203,25 +203,24 @@ class CRF(object):
         from scipy import optimize
         likelihood = lambda x:-self.likelihood(fvs, x)# replace theta with x.
         likelihood_deriv = lambda x:-self.gradient_likelihood(fvs, x)
-        return optimize.fmin_bfgs(likelihood, theta, fprime=likelihood_deriv) #Minimize a likelihood
+        return optimize.fmin_bfgs(likelihood, theta, fprime=likelihood_deriv)
         #fmin_bfgs(f, x0, fprime=None)
         ''' f : callable f(x,*args)
            x0 : ndarray Initial guess.
         fprime: optional Gradient of f.'''
 
-# veterbi algorithm to predict the sequence.
+    # veterbi algorithm to predict the sequence.
     def tagging(self, fv, theta):
         n_fe = self.features.size_edge() # number of features on edge
         logMlist = fv.logMlist(theta[:n_fe], theta[n_fe:])
-
         logalphas = self.logalphas(logMlist)
         logZ = logalphas[-1][self.features.stop_label_index()]
-
-        delta = logMlist[0][self.features.start_label_index()]
+        #
+        delta = logMlist[0][self.features.start_label_index()]  #alpha(1)
         argmax_y = []
         for logM in logMlist[1:]:
-            h = logM + delta[:, numpy.newaxis] #newaxis:create an axis of length one
-            argmax_y.append(h.argmax(0)) # argmax:return Indices of max
+            h = logM + delta[:, numpy.newaxis]
+            argmax_y.append(h.argmax(0)) # argmax:return Indices of max,axis=0
             delta = h.max(0)
         Y = [delta.argmax()]
         for a in reversed(argmax_y):
@@ -233,8 +232,8 @@ class CRF(object):
         '''verification of tagging'''
         n_fe = self.features.size_edge() # number of features on edge
         logMlist = fv.logMlist(theta[:n_fe], theta[n_fe:])
-        N = len(logMlist) - 1
-        K = logMlist[0][0].size
+        N = len(logMlist) - 1 # the length of a sequence
+        K = logMlist[0][0].size #
 
         ylist = [0] * N
         max_p = -1e9
@@ -348,8 +347,7 @@ def main():
     """)
 
     #print "texts",texts
-    #print "labels",labels
-    #each sentence has a label list:['B-NP', 'I-NP', 'I-NP', ... , 'I-NP', 'O']
+    #print "labels",labels each sentence has a label list:['B-NP', 'I-NP', 'I-NP', ... , 'I-NP', 'O']
     
     test_texts, test_labels = load_data("""
     Rockwell NNP B-NP
@@ -373,17 +371,21 @@ def main():
 
     #print 'labels: ',labels,'the length is:',len(labels)
     features = Features(labels)
+    #print 'features.labels:',features.labels  # a long label sequence
     tokens = dict([(i[0],1) for x in texts for i in x]).keys() # extract all tokens by dictionary.
     # is a list, can improve to dict.
     infos = dict([(i[1],1) for x in texts for i in x]).keys()
-
-    for label in features.labels:  #label is for a sentence.
+    pre_y =''
+    for j,label in enumerate(features.labels):  #label for a line
         for token in tokens:
             features.add_feature( lambda x, y, l=label, t=token: 1 if y==l and x[0]==t else 0 )
             # def self.features.append(f) .
         for info in infos:
             features.add_feature( lambda x, y, l=label, i=info: 1 if y==l and x[1]==i else 0 )
-    features.add_feature_edge( lambda y_, y: 0 )
+        if j:
+            features.add_feature_edge( lambda y_, y,p=pre_y,l=label: 1 if y_==p and y==l else 0 )
+        pre_y=label
+            
 
     fvs = [FeatureVector(features, x, y) for x, y in zip(texts, labels)]
     fv = fvs[0]
