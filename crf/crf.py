@@ -4,14 +4,14 @@
 # Conditional Random Field
 # This code is available under the MIT License.
 # (c)2010-2011 Nakatani Shuyo / Cybozu Labs Inc.
-#  reniced by chengjie @GDUT.dmir.
+# reniced by chengjie @GDUT.dmir.
 
 import numpy
 from scipy import maxentropy
 
-def logdotexp_vec_mat(loga, logM):  # log the list of dot product of loga, logM
+def logdotexp_vec_mat(loga, logM):
     return numpy.array([maxentropy.logsumexp(loga + x) for x in logM.T], copy=False)
-                    #logsumexp: log(e^{loga+x0}+...e^{loga+x_n})  .T :transpose()
+                    #logsumexp: log(a*M)  .T :transpose
 
 def logdotexp_mat_vec(logM, logb):
     return numpy.array([maxentropy.logsumexp(x + logb) for x in logM], copy=False)
@@ -27,19 +27,17 @@ class FeatureVector(object):
         '''intermediates of features (sufficient statistics like)'''
         flist = features.features_edge  # transfer features function
         glist = features.features       # state feature function
-        self.K = len(features.labels)   # length of labels sequence,large for large train dataset
+        self.K = len(features.labels)   # length of all labels sequence
         
         # expectation of features under empirical distribution (if ylist is specified)
-        # ylist is a label sequence. 
+        # ylist :label sequence
         if ylist:
             self.Fss = numpy.zeros(features.size(), dtype=int)  #features size,a large number
-            #zip: a = [1,2,3] b = [4,5,6] zip(a,b) [(1, 4), (2, 5), (3, 6)]
             for y1, y2 in zip(["start"] + ylist, ylist + ["end"]):
                 self.Fss[:len(flist)] += [f(y1, y2) for f in flist]  # adds edge_feature values
-            # f function: lambda y_, y: 0 ???
             for y1, x1 in zip(ylist, xlist):
                 self.Fss[len(flist):] += [g(x1, y1) for g in glist]
-        #Fss is the numerical sequence of all features.
+        #Fss is the numerical array including all features.
 
         # index list of ON values of edge features //f_value=1
         self.Fon = [] # (n, #f, indexes)
@@ -48,44 +46,41 @@ class FeatureVector(object):
         self.Fmat = [] # (n, K, #f, K)-matrix
         self.Gmat = [] # (n, #g, K)-matrix
         for x in xlist:
-            mt = numpy.zeros((len(glist), self.K), dtype=int) # (#g, K)-matrix
-            for j, g in enumerate(glist): #
-                mt[j] = [g(x, y) for y in features.labels]  # sparse, for special y, x whether ON;
-            self.Gmat.append(mt)                            # s(y_i,x,i), mt[j] :W_i(y_i,x) b11.23
+            mt = numpy.zeros((len(glist), self.K), dtype=int) # #g rows K clos
+            for j, g in enumerate(glist): 
+                mt[j] = [g(x, y) for y in features.labels] #sparse,for special g function check per position
+            self.Gmat.append(mt)                           # s(y_i,x,i) :W_i(y_i,x) b11.23
             #self._calc_fmlist(flist, x) # when fmlist depends on x_i (if necessary)
-
-        # when fmlist doesn't depend on x_i
+        #when fmlist doesn't depend on x_i
         self._calc_fmlist(features)
 
-
+    # fmlist: generate from training data
     def _calc_fmlist(self, features):
         flist = features.features_edge
         fmlist = []
-        f_on = [[] for f in flist]  # make a len(flist) []s
-        for k1, y1 in enumerate(features.labels):
+        f_on = [[] for f in flist]  # for a feature_edge function,
+        for k1, y1 in enumerate(features.labels):  # consider all y_,y combinations
             mt = numpy.zeros((len(flist), self.K), dtype=int)
             for j, f in enumerate(flist):
-                mt[j] = [f(y1, y2) for y2 in features.labels]  # sparse, mt[m][m]
+                mt[j] = [f(y1, y2) for y2 in features.labels]  # sparse
                 f_on[j].extend([k1 * self.K + k2 for k2, v in enumerate(mt[j]) if v == 1])
-                # record the positon at m_i
-            fmlist.append(mt)    # every label generates a mt. flist:(K, #f, K)-matrix
+                # record the positon at m_i for those transfer edges exist
+            fmlist.append(mt)    # every x_i generates a mt.  flist:(K, #f, K)-matrix
         self.Fmat.append(fmlist) # only execute one time
         self.Fon.append(f_on)
-    # there is a problem , list append another list.
     
-    # [predict algorithm] theta is the learned parameter, Fss is F(y,x)
+    
+    # dotproduct form of the model. theta:learned parameter, Fss:F(y,x),global features
     def cost(self, theta):
-        return numpy.dot(theta, self.Fss)
+        return numpy.dot(theta, self.Fss)  # formula 11.19
     
-    # calculate M_i=[M_i(y_i-1,y_i,x)]
+    # calculate M_i=[M_i(y_i-1,y_i,x)]     # formula 11.21
     def logMlist(self, theta_f, theta_g):
         '''for independent fmlists on x_i'''
-        fv = numpy.zeros((self.K, self.K)) # create a metrix
-        for j, fm in enumerate(self.Fmat[0]):  #self.Fmat[0] is fmlist(K, #f, K)-matrix.
-            fv[j] = numpy.dot(theta_f, fm)
-            #print 'fv[j]:',fv[j] it's a list.
+        fv = numpy.zeros((self.K, self.K)) 
+        for j, fm in enumerate(self.Fmat[0]):  #Fmat[0]: fmlist(K, #f, K)-matrix.
+            fv[j] = numpy.dot(theta_f, fm)     #fv[j]:list
         return [fv + numpy.dot(theta_g, gm) for gm in self.Gmat] + [fv]
-        # each element still a vector
 
 
 class Features(object):
@@ -155,21 +150,20 @@ class CRF(object):
         stop_index = self.features.stop_label_index()
 
         likelihood = 0
-        # fv: FeatureVector
+        # fv: FeatureVector F(y_i,x_i)
         for fv in fvs: # on book N is #fvs
             logMlist = fv.logMlist(t1, t2)
             logZ = self.logalphas(logMlist)[-1][stop_index] #Z(x) b 11.31 below
             likelihood += fv.cost(theta) - logZ             #b 11.4.1  for N (x,y) samples
-        return likelihood - self.regularity(theta)
+        return likelihood - self.regularity(theta)          # regularity
 
-    # the gradient of likelihood
-    def gradient_likelihood(self, fvs, theta):
+    def gradient_likelihood(self, fvs, theta):   #The gradient is computed using central differences
         n_fe = self.features.size_edge() # number of features on edge
         t1, t2 = theta[:n_fe], theta[n_fe:]
         stop_index = self.features.stop_label_index()
         start_index = self.features.start_label_index()
 
-        grad = numpy.zeros(self.features.size()) #
+        grad = numpy.zeros(self.features.size())
         for fv in fvs:
             logMlist = fv.logMlist(t1, t2)
             logalphas = self.logalphas(logMlist)
@@ -178,19 +172,20 @@ class CRF(object):
 
             grad += numpy.array(fv.Fss, dtype=float) # empirical expectation
 
-            # expection: b 11.34
-            expect = numpy.zeros_like(logMlist[0])   #return an 0s array with the same shape
+            # expection: b 11.34  ???
+            expect = numpy.zeros_like(logMlist[0])
+            print 'the shape of expect:',expect.shape
             for i in range(len(logMlist)):
                 if i == 0:
                     expect[start_index] += numpy.exp(logalphas[i] + logbetas[i+1] - logZ)
-                        #alphas[i]*betas[i+1]/Z
+                    # alphas[i]*betas[i+1]/Z
                 elif i < len(logbetas) - 1:
                     a = logalphas[i-1][:, numpy.newaxis] # becomes 2D array
                     expect += numpy.exp(logMlist[i] + a + logbetas[i+1] - logZ)
                 else:
                     expect[:, stop_index] += numpy.exp(logalphas[i-1] + logbetas[i] - logZ)
             for k, indexes in enumerate(fv.Fon[0]):
-                grad[k] -= numpy.sum(expect.take(indexes)) #take:Take elements from an array along an axis
+                grad[k] -= numpy.sum(expect.take(indexes)) # take:Take elements from an array along an axis
 
             for i, gm in enumerate(fv.Gmat):
                 p_yi = numpy.exp(logalphas[i] + logbetas[i+1] - logZ)  # i i+1?
@@ -372,6 +367,7 @@ def main():
     #print 'labels: ',labels,'the length is:',len(labels)
     features = Features(labels)
     #print 'features.labels:',features.labels  # a long label sequence
+    #print 'the length of features.labels',len(features.labels)
     tokens = dict([(i[0],1) for x in texts for i in x]).keys() # extract all tokens by dictionary.
     # is a list, can improve to dict.
     infos = dict([(i[1],1) for x in texts for i in x]).keys()
@@ -391,7 +387,6 @@ def main():
     fv = fvs[0]
     text_fv = FeatureVector(features, test_texts[0]) # text sequence without labels
 
-
     crf = CRF(features, 2)  # regularity =2
     theta = crf.random_param()
 
@@ -401,7 +396,6 @@ def main():
     #print features.labels ['start', 'stop', 'B-NP',.....,'O']
     
 
-    #print "theta:", theta
     print "log likelihood:", crf.likelihood(fvs, theta)
     prob, ys = crf.tagging(text_fv, theta)
     print "tagging:", prob, features.id2label(ys)
