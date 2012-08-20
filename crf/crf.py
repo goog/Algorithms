@@ -4,14 +4,15 @@
 # Conditional Random Field
 # This code is available under the MIT License.
 # (c)2010-2011 Nakatani Shuyo / Cybozu Labs Inc.
-# reniced by chengjie @GDUT.dmir.
+# reniced by chengjie @GDUT.dmir. Thank my tutor Mr Hao.
 
 import numpy
 from scipy import maxentropy
 
 def logdotexp_vec_mat(loga,logM):
     return numpy.array([maxentropy.logsumexp(loga + x) for x in logM.T], copy=False)
-                    #logsumexp: log(a*M)  .T :transpose
+    #return numpy.array([numpy.log(numpy.dot(numpy.exp(loga),numpy.exp(x))) for x in logM.T], copy=False)
+    #log(a*M) -->log alpha  .T :transpose
 
 def logdotexp_mat_vec(logM, logb):
     return numpy.array([maxentropy.logsumexp(x + logb) for x in logM], copy=False)
@@ -22,7 +23,7 @@ def flatten(x):
     for y in x: a.extend(flatten(y) if isinstance(y, list) else [y])
     return a
 
-# rethink,
+# rethink, fv: features about a training sample (like a sentence)
 
 class FeatureVector(object):
     def __init__(self, features, xlist, ylist=None):
@@ -35,13 +36,13 @@ class FeatureVector(object):
         # ylist :label sequence
         if ylist:
             self.Fss = numpy.zeros(features.size(), dtype=int)  #features size,a large number
-            for y1, y2,x in zip(["start"] + ylist, ylist + ["end"],xlist):
-                self.Fss[:len(flist)] += [f(y1, y2,x) for f in flist]  # adds edge_feature values
-            for y1, x1 in zip(ylist, xlist):
-                self.Fss[len(flist):] += [g(x1, y1) for g in glist]
-        #Fss is the numerical array including all features.  empirical distribution
+            for y1,y2,x in zip(["start"] + ylist, ylist + ["end"],xlist):
+                self.Fss[:len(flist)] += [f(y1,y2,x) for f in flist]  # adds edge_feature values
+            for y1,x1 in zip(ylist,xlist):
+                self.Fss[len(flist):] += [g(x1,y1) for g in glist]
+        #Fss is the numerical array including all features,empirical distribution
 
-        # index list of ON values of edge features //f_value=1
+        # index list of ON values of edge features //f_value=1 , the n is for n samples
         self.Fon = [] # (n, #f, indexes)
         self.Fmat = [] # (n, K, #f, K)-matrix
         self.Gmat = [] # (n, #g, K)-matrix
@@ -49,9 +50,9 @@ class FeatureVector(object):
             mt = numpy.zeros((len(glist), self.K), dtype=int) # #g rows K clos
             for j, g in enumerate(glist): 
                 mt[j] = [g(x, y) for y in features.labels]
-                #sparse,check wether per position x which labels y meets the g feature function
+                #sparse,check wether per position x and label y meet the g feature function
             self.Gmat.append(mt)         # g(y_i,x,i) one feature function(ff) on each position
-            self._calc_fmlist(features,flist,x) # when fmlist depends on x_i (if necessary)
+            self._calc_fmlist(features,flist,x) # fmlist depends on x_i 
         
         
 
@@ -63,10 +64,11 @@ class FeatureVector(object):
             mt = numpy.zeros((len(flist), self.K), dtype=int)
             for j, f in enumerate(flist):
                 mt[j] = [f(y1,y2,x) for y2 in features.labels]  # sparse
+                # mt[j] , there exist several 1s, T'sS several directions to go
                 f_on[j].extend([k1 * self.K + k2 for k2, v in enumerate(mt[j]) if v == 1])
                 # record the positon at m_i for those transfer edges exist
             fmlist.append(mt)    # every x_i generates a mt.  flist:(K, #f, K)-matrix
-        self.Fmat.append(fmlist) # only execute one time
+        self.Fmat.append(fmlist) # execute multitupe times 
         self.Fon.append(f_on)
     
     
@@ -80,6 +82,7 @@ class FeatureVector(object):
         fv = numpy.zeros((self.K, self.K))     #has the shape
         for j,fm in enumerate(self.Fmat[0]):   #Fmat[0]: fmlist(K, #f, K)-matrix.
             fv[j] = numpy.dot(theta_f, fm)     #fv[j]:list  w*F
+        # use the same fv matrix
         return [fv + numpy.dot(theta_g, gm) for gm in self.Gmat] + [fv]
 
 
@@ -123,24 +126,23 @@ class CRF(object):
     def random_param(self):
         return numpy.random.randn(self.features.size())
 
-    # forward 
+    # forward algorithm
     def logalphas(self, Mlist):
-        #M_i ,in position i;(y_i-1 --> y_i)
-        logalpha = Mlist[0][self.features.start_label_index()] # alpha(1)
-        logalphas = [logalpha]
+        logalpha = Mlist[0][self.features.start_label_index()] # alpha(1),logalphas starts with alpha(1)
+        logalphas = [logalpha] 
         for logM in Mlist[1:]:
             logalpha = logdotexp_vec_mat(logalpha, logM)
             logalphas.append(logalpha)
         return logalphas
     
-    # backward 
+    # backward algorithm 
     def logbetas(self, Mlist):
-        logbeta = Mlist[-1][:, self.features.stop_label_index()]
+        logbeta = Mlist[-1][:, self.features.stop_label_index()]  # beta(n)
         logbetas = [logbeta]
         for logM in Mlist[-2::-1]:
             logbeta = logdotexp_mat_vec(logM, logbeta)
             logbetas.append(logbeta)
-        return logbetas[::-1]
+        return logbetas[::-1]  #adjust the order
 
 
     def likelihood(self, fvs, theta):
@@ -154,7 +156,7 @@ class CRF(object):
         for fv in fvs: # on book N is #fvs
             logMlist = fv.logMlist(t1, t2)
             logZ = self.logalphas(logMlist)[-1][stop_index] #Z(x) b 11.31 below
-            likelihood += fv.cost(theta) - logZ             #b 11.4.1  for N (x,y) samples
+            likelihood += fv.cost(theta) - logZ             #b 11.4.1  for N (x,y) samples, fv: f_k(x,y)
         return likelihood - self.regularity(theta)          # regularity
 
     def gradient_likelihood(self, fvs, theta):   
@@ -174,23 +176,28 @@ class CRF(object):
 
             # expection: b 11.34
             expect = numpy.zeros_like(logMlist[0])
-            print 'the shape of expect:',expect.shape
+            #print 'the shape of expect:',expect.shape the shape of expect: (18, 18)
             for i in range(len(logMlist)):
                 if i == 0:
                     expect[start_index] += numpy.exp(logalphas[i] + logbetas[i+1] - logZ)
                     # alphas[i]*betas[i+1]/Z
                 elif i < len(logbetas) - 1:
                     a = logalphas[i-1][:, numpy.newaxis] # becomes 2D array
-                    expect += numpy.exp(logMlist[i] + a + logbetas[i+1] - logZ)
+                    #expect += numpy.exp(logMlist[i] + a + logbetas[i+1] - logZ)
+                    expect += numpy.exp(logMlist[i] + a + logbetas[i] - logZ)
                 else:
                     expect[:, stop_index] += numpy.exp(logalphas[i-1] + logbetas[i] - logZ)
+
             # there is product feature functions.
             for k, indexes in enumerate(fv.Fon[0]): # edge_feature exists,
                 grad[k] -= numpy.sum(expect.take(indexes)) # take:Take elements from an array along an axis
 
             for i, gm in enumerate(fv.Gmat):
-                p_yi = numpy.exp(logalphas[i] + logbetas[i+1] - logZ)
-                grad[n_fe:] -= numpy.sum(gm * numpy.exp(logalphas[i] + logbetas[i+1] - logZ), axis=1)
+                # probability of P(yi|x) p_yi = numpy.exp(logalphas[i] + logbetas[i] - logZ)
+                # gm * p_yi sum at each row
+                grad[n_fe:] -= numpy.sum(gm * numpy.exp(logalphas[i] + logbetas[i+1] - logZ),axis=1)
+            # why fm dont product probability. 
+                
 
         return grad - self.regularity_deriv(theta)
 
@@ -214,14 +221,14 @@ class CRF(object):
         #
         delta = logMlist[0][self.features.start_label_index()]  #alpha(1)
         argmax_y = []
+        # ? Multiple products
         for logM in logMlist[1:]:
             h = logM + delta[:, numpy.newaxis]
-            argmax_y.append(h.argmax(0)) # argmax:return Indices of max,axis=0
-            delta = h.max(0)
-        Y = [delta.argmax()]
+            argmax_y.append(h.argmax(0)) # argmax:return indices of in each column
+            delta = h.max(0)  # return max row
+        Y = [delta.argmax()] # 
         for a in reversed(argmax_y):
             Y.append(a[Y[-1]])
-
         return Y[0] - logZ, Y[::-1]
 
     def tagging_verify(self, fv, theta):
