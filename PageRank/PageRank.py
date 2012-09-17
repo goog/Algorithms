@@ -21,8 +21,10 @@ def pagerank(d,v_quadratic_error):
     M = array(ast.literal_eval(M))    
     N=M.shape[1]
     v=random.rand(N,1)
+    # norm:sqrt(dot(v,v)) to regularization
     v=v/linalg.norm(v)
     a=array([[inf]]);last_v = dot(ones((N,1)),a)
+    # here d is smooth parameter
     M_hat=(d * M)+(((1-d)/N)*ones((N,N)))
     i=0
     while(linalg.norm(v - last_v) > v_quadratic_error):
@@ -33,6 +35,4 @@ def pagerank(d,v_quadratic_error):
     print "after %s iters,it converges" %i
     print "The PageRank is:\n",v
 
-pagerank(0.85,0.001)
-    
-    
+pagerank(0.85,0.001) 
