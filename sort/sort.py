@@ -7,26 +7,14 @@ def bubbleSORT(li):
         print li
 
 
-def straightINSERTIONsort(li):
-    for i in range(1,len(li)):
-        temp = li[i]
-        for j in reversed(range(i)):
-            print "i",i,"j",j
-            if temp < li[j]:
-                li[j+1]=li[j]
-            else:
-                li[j+1]=temp
-                break
-        print li
-            
             
 def insertionSORT(list2):
-    for i in range(1, len(list2)):
+    for i in range(1,len(list2)):
         save = list2[i]
-        j = i
-        while j > 0 and list2[j - 1] > save:
+        j = i  ### j, the position to insert
+        while j > 0 and list2[j-1] > save:
             list2[j] = list2[j-1]
-            j -= 1
+            j-= 1
         list2[j] = save
     print list2
         
@@ -68,14 +56,53 @@ def heapADJUST(li,s,m):
         j = 2*j +1
     li[s]=rc   ## place the 
 
-        
-if __name__ == '__main__':
+
+
+def merge(li,li2):
+    listM= []
+    i , j = 0,0
+    while(i < len(li) and j < len(li2)):
+        if li[i] <= li2[j]:
+            listM.append(li[i])
+            i+=1
+        else:
+            listM.append(li2[j])
+            j+=1
+    if i != len(li):
+        listM.extend(li[i:])
+    elif j!= len(li2):
+        listM.extend(li2[j:])
+    print listM
+
+
+
+def partition(li,low,high):
+    pivot = li[low]   ##  a unit spare
+    while low < high:
+        while low < high and li[high]>=pivot:
+            high-=1
+        li[low]= li[high]
+        while low < high and li[low]<=pivot:
+            low+=1
+        li[high]= li[low]
+    li[low] = pivot
+    return low
+
+def quickr(li,low,high):
+    if low < high:
+        p = partition(li,low,high)
+        quickr(li,low,p-1)
+        quickr(li,p+1,high)
+
+def quickSORT(li):
+    quickr(li,0,len(li)-1)
+if  __name__ == '__main__':
     #bubbleSORT([100,15,13,1,23,12])
-    #straightINSERTIONsort([3,5,1])
-    #insertion_sort([1,2,5,3])
-   # shellSORT([21,34,2,23,45,65])
-    heapSORT([21,34,2,23,45])
-
-
-    
+    #insertionSORT([1,2,5,3])
+    #shellSORT([21,34,2,23,45,65])
+    #heapSORT([21,12,2,100,45])
+    #merge([2,34,556],[34,34,67,1234,3567,4234])
+    li = [4,56,23,12,1345,321]
+    quickSORT(li)
+    print li
         
