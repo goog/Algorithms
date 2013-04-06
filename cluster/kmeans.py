@@ -41,7 +41,8 @@ def kmeans(k,data):
                 print cluster[i]
             break
     
-        ## clear the cluster data
+        ## clear the cluster data after centroid compute
+        cluster = []
         for i in range(k):
             cluster.append(set())
 
