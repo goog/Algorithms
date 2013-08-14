@@ -1,7 +1,7 @@
 import itertools
+
 def apriori(tuples,minSUP):
     ## tuples is a list
-
     #the itemset define as a li (sorted)
     ###init  itemsets
     items = set()
@@ -19,21 +19,19 @@ def apriori(tuples,minSUP):
     
     while(True):
 
-
+        ##  COMPUTE Lk-1
         ## compute the support 
         supports = {}
         for i in items:
-            i = set(i.split())  ## convert i to a set
-            for j in tuples:
-                if i.issubset(j):
-                    ilist = list(i)
-                    ilist.sort()
+            j = set(i.split())  ## convert string i to a set
+            for k in tuples:
+                if j.issubset(k):
                     #print ilist,type(ilist)
-                    if supports.get(' '.join(ilist)):
-                        supports[' '.join(ilist)]+=1
+                    if supports.get(i):
+                        supports[i]+=1
                     else:
-                        supports[' '.join(ilist)]=1
-        ##get support more than fixed value
+                        supports[i]=1
+                        
         for k in supports.keys():
             if supports[k]< minSUP:
                 del supports[k]
@@ -44,35 +42,37 @@ def apriori(tuples,minSUP):
 
         ### join, generate Ck
         Ck = set()
+        #print "supports.keys()",type(supports.keys())
         a = set(supports.keys())
         b = a.copy()
         for i in a:
             b.remove(i)
-            for j in b:    ### get two different eles from the list
+            for j in b:    ### get two different eles from the set
                 aLIST = i.split()
                 bLIST = j.split()
-                aSET = set(aLIST)
-                bSET = set(bLIST)
-                if len(aSET & bSET) == len(aLIST)-1:
-                    ck = list(aSET|bSET)
+                if len(aLIST) == len(bLIST) and aLIST != bLIST and aLIST[:-1] ==bLIST[:-1]:   ####(k-1) in common in order
+                    ck = aLIST;ck.append(bLIST[-1])
                     ck.sort()
                     Ck.add(' '.join(ck))
 
         #### prune
         Ck1 = Ck.copy()
         for i in Ck:
-            i = i.split()
-            cb = itertools.combinations(i,len(i)-1)
-            for j in cb:
-                print "test",j,type(j)
-                jlist = list(j)
-                jlist.sort()
-                if supports.get(' '.join(jlist)) is None:
-                    Ck1.remove(' '.join(i))
+            j = i.split()
+            cb = itertools.combinations(j,len(j)-1)
+            print "the length of cb",type(cb)
+            print "the cb is :",cb
+            for k in cb:
+                print "the combination :",k,type(k)
+                klist = list(k)
+                klist.sort()
+                if supports.get(' '.join(klist)) is None:
+                    Ck1.remove(i)
                     break
-                elif supports[' '.join(jlist)] < minSUP:
-                    Ck1.remove(' '.join(i))
+                elif supports[' '.join(klist)] < minSUP:
+                    Ck1.remove(i)
                     break
+                
         if Ck1 is None:
             print "items is:",items
             break
