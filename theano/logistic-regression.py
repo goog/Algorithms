@@ -40,9 +40,7 @@ import gzip
 import os
 import sys
 import time
-
 import numpy
-
 import theano
 import theano.tensor as T
 
@@ -128,11 +126,7 @@ class LogisticRegression(object):
 
 
 def load_data(dataset):
-    ''' Loads the dataset
-
-    :type dataset: string
-    :param dataset: the path to the dataset (here MNIST)
-    '''
+    #param dataset: the path to the dataset (here MNIST)
 
     #############
     # LOAD DATA #
@@ -151,7 +145,6 @@ def load_data(dataset):
     # Load the dataset
     f = gzip.open(dataset, 'rb')
     train_set, valid_set, test_set = cPickle.load(f)
-    print "data sets:",train_set,test_set
     f.close()
     # train_set, valid_set, test_set format: tuple(input, target)
     # input is an numpy.ndarray of 2 dimensions (a matrix) which row's correspond to an example.
@@ -167,7 +160,7 @@ def load_data(dataset):
         is needed (the default behaviour if the data is not in a shared
         variable) would lead to a large decrease in performance.
         """
-        data_x, data_y = data_xy
+        data_x, data_y = data_xy  ## data_xy is original tuple dataset
         shared_x = theano.shared(numpy.asarray(data_x,
                                                dtype=theano.config.floatX),
                                  borrow=borrow)
@@ -175,11 +168,8 @@ def load_data(dataset):
                                                dtype=theano.config.floatX),
                                  borrow=borrow)
         # When storing data on the GPU it has to be stored as floats
-        
-        # (``shared_y`` does exactly that). But during our computations
-        # we need them as ints (we use labels as index) therefore instead of returning
-        # ``shared_y`` we will have to cast it to int.
-        
+        #But during our computations we need them as ints (we use labels as index)
+        #therefore instead of returning ``shared_y`` we will have to cast it to int.
         return shared_x, T.cast(shared_y, 'int32')
 
     test_set_x, test_set_y = shared_dataset(test_set)
@@ -188,7 +178,6 @@ def load_data(dataset):
 
     rval = [(train_set_x, train_set_y), (valid_set_x, valid_set_y),
             (test_set_x, test_set_y)]
-    print "The length of rval is: %s" %(len(rval))
     return rval
 
 
@@ -201,7 +190,6 @@ def sgd_optimization_mnist(learning_rate=0.13, n_epochs=1000,
     #param dataset: the path of the MNIST dataset file from
                
     datasets = load_data(dataset)
-
     train_set_x, train_set_y = datasets[0]
     valid_set_x, valid_set_y = datasets[1]
     test_set_x, test_set_y = datasets[2]
@@ -215,21 +203,19 @@ def sgd_optimization_mnist(learning_rate=0.13, n_epochs=1000,
     # BUILD ACTUAL MODEL #
     ######################
     print '... building the model'
-
     # allocate symbolic variables for the data
     index = T.lscalar()  # index to(of) a [mini]batch
-    x = T.matrix('x')  # the data is presented as rasterized images
-    y = T.ivector('y')  # the labels are presented as 1D vector of [int] labels
+    x = T.matrix('x')    # the data is presented as rasterized images
+    y = T.ivector('y')   # the labels are presented as 1D vector of [int] labels
 
-    # construct the logistic regression class
-    # Each MNIST image has size 28*28
-    ## input x symbolic variable
+    # construct the logistic regression class, Each MNIST image has size 28*28
+    # input x symbolic variable
     classifier = LogisticRegression(input=x, n_in=28 * 28, n_out=10)
 
     # the cost we minimize during training is the negative log likelihood of the model in symbolic format
     cost = classifier.negative_log_likelihood(y)
 
-    # compiling a Theano function that computes the mistakes ratio
+    # compiling a Theano function that computes the error ratio
     test_model = theano.function(inputs=[index],
             outputs=classifier.errors(y),
             givens={
@@ -246,13 +232,11 @@ def sgd_optimization_mnist(learning_rate=0.13, n_epochs=1000,
     g_W = T.grad(cost=cost, wrt=classifier.W)
     g_b = T.grad(cost=cost, wrt=classifier.b)
 
-    # specify how to update the parameters of the model as a list of
-    # (variable, update expression) pairs.
+    # specify how to update the parameters of the model
     updates = [(classifier.W, classifier.W - learning_rate * g_W),
                (classifier.b, classifier.b - learning_rate * g_b)]
 
-    # compiling a Theano function `train_model` that returns the cost, but in
-    # the same time updates the parameter of the model based on the rules defined in `updates`
+    # compiling a Theano function `train_model` that returns the cost
     train_model = theano.function(inputs=[index],
             outputs=cost,
             updates=updates,
@@ -264,16 +248,12 @@ def sgd_optimization_mnist(learning_rate=0.13, n_epochs=1000,
     # TRAIN MODEL #
     ###############
     print '... training the model'
-    # early-stopping parameters
-    '''  the patience corresponds to a number of epochs '''
+    # early-stopping parameters, the patience corresponds to a number of epochs
     patience = 5000  # look as this many examples regardless
     patience_increase = 2  # wait this much longer when a new best is found
-    improvement_threshold = 0.995  # a relative improvement of this much is considered significant
-
-    
+    improvement_threshold = 0.995  # a relative improvement of this much is considered significant 
     validation_frequency = min(n_train_batches, patience / 2)
-                                  # go through this many minibatche before checking the network
-                                  # on the validation set; in this case we check every epoch
+    # go through this many minibatche before checking on the validation set;here we check every epoch
 
     best_params = None
     best_validation_loss = numpy.inf  ## infinity
@@ -284,12 +264,10 @@ def sgd_optimization_mnist(learning_rate=0.13, n_epochs=1000,
     epoch = 0
     while (epoch < n_epochs) and (not done_looping):
         epoch = epoch + 1
-        for minibatch_index in xrange(n_train_batches):  ##[0,1,...,n_train_batches-1]
-            
+        for minibatch_index in xrange(n_train_batches):         
             minibatch_avg_cost = train_model(minibatch_index)
-            # iteration number, two loops
+            # iteration number for two loops
             iter = (epoch - 1) * n_train_batches + minibatch_index
-            
             if (iter + 1) % validation_frequency == 0:
                 # compute zero-one loss on validation set
                 validation_losses = [validate_model(i) for i in xrange(n_valid_batches)]
@@ -303,22 +281,18 @@ def sgd_optimization_mnist(learning_rate=0.13, n_epochs=1000,
                 if this_validation_loss < best_validation_loss:
                     # improve patience if loss improvement is good enough
                     # Using the max between actual patience and updated patience
-                    #ensures that the model will run for at least the initial
-                    #patience and that it would behave correctly if the user
-                    #chooses a dumb value (i.e. less than 1)
                     if this_validation_loss < best_validation_loss * improvement_threshold:
-                        patience = max(patience, iter * patience_increase)
-
+                        patience = max(patience, iter * patience_increase)  ## recall the GA, if there is no much improvement ,
+                                                                            ## dont need to iter more
                     best_validation_loss = this_validation_loss
                     # Then test it on the test set
-
                     test_losses = [test_model(i) for i in xrange(n_test_batches)]
                     test_score = numpy.mean(test_losses)
                     print(('     epoch %i, minibatch %i/%i, test error of best'
                        ' model %f %%') %
                         (epoch, minibatch_index + 1, n_train_batches,
                          test_score * 100.))
-            ## 
+            ## early stopping, the itered times prevails the patience
             if patience <= iter:
                 done_looping = True
                 break
