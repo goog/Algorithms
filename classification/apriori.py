@@ -1,32 +1,28 @@
 import itertools
 
 def apriori(tuples,minSUP):
-    ## tuples is a list
-    #the itemset define as a li (sorted)
-    ###init  itemsets
-    items = set()
-    item = set()
+    ## candidate k-itemset
+    items = set()   ##  init C1
+    item = set()   ## one item set
+    
     for j in tuples:
         for k in j:
             item.add(k)
-    print "there is %s items in list" %(len(item))
-    print "item",item
+    print "there are %s unique items in the list" %(len(item))
 
+    ## construct the C1
     for i in item:
-        items.add(i)   ##  now a itemset is a string
+        items.add(i)
     print "the length of C1 is %s" %(len(items))
 
     
     while(True):
-
         ##  COMPUTE Lk-1
-        ## compute the support 
         supports = {}
-        for i in items:
-            j = set(i.split())  ## convert string i to a set
-            for k in tuples:
+        for i in items:  ## i is a string of the sorted itemset
+            j = set(i.split())  ## convert string i into a set
+            for k in tuples:    ## k is a shopping list set
                 if j.issubset(k):
-                    #print ilist,type(ilist)
                     if supports.get(i):
                         supports[i]+=1
                     else:
@@ -36,22 +32,25 @@ def apriori(tuples,minSUP):
             if supports[k]< minSUP:
                 del supports[k]
         if supports is None:
-            print "no supports "
+            print "The supports is empty."
             break
 
 
-        ### join, generate Ck
+        ## generate Ck
         Ck = set()
-        #print "supports.keys()",type(supports.keys())
-        a = set(supports.keys())
+        a = set(supports.keys())  ## L(k-1)
         b = a.copy()
+        
         for i in a:
             b.remove(i)
-            for j in b:    ### get two different eles from the set
+            for j in b:    ## get two elements from the set a
                 aLIST = i.split()
                 bLIST = j.split()
-                if len(aLIST) == len(bLIST) and aLIST != bLIST and aLIST[:-1] ==bLIST[:-1]:   ####(k-1) in common in order
-                    ck = aLIST;ck.append(bLIST[-1])
+                ## requires (k-1) elements in common
+                inter = set(aLIST) & set(bLIST)
+                union = set(aLIST) | set(bLIST)
+                if len(aLIST) == len(bLIST) and (len(inter) == len(aLIST)-1 ) and len(union - inter)==2 :
+                    ck = list(union)
                     ck.sort()
                     Ck.add(' '.join(ck))
 
@@ -60,23 +59,22 @@ def apriori(tuples,minSUP):
         for i in Ck:
             j = i.split()
             cb = itertools.combinations(j,len(j)-1)
-            print "the length of cb",type(cb)
-            print "the cb is :",cb
             for k in cb:
-                print "the combination :",k,type(k)
                 klist = list(k)
                 klist.sort()
                 if supports.get(' '.join(klist)) is None:
                     Ck1.remove(i)
                     break
-                elif supports[' '.join(klist)] < minSUP:
+                elif supports.get(' '.join(klist)) < minSUP:
                     Ck1.remove(i)
                     break
                 
-        if Ck1 is None:
+        if Ck1:
+            items = Ck1
+        else:
             print "items is:",items
             break
-        items = Ck1    ##  itemset Lk
+        
 
     print "over"
 
