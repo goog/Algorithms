@@ -1,7 +1,8 @@
 def logger(func):
-    def inner(*args, **kwargs): #1
+    def inner(*args, **kwargs):
         print "Arguments were: %s, %s" % (args, kwargs)
-        return func(*args, **kwargs) #2
+	## valid function
+        return func(*args, **kwargs)
     return inner
 
 

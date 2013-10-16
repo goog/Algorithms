@@ -7,8 +7,7 @@ from _thread import RLock
 ### update_wrapper() and wraps() decorator
 ################################################################################
 
-# update_wrapper() and wraps() are tools to help write
-# wrapper functions that can handle naive introspection
+# update_wrapper() are tools to help write wrapper functions
 
 WRAPPER_ASSIGNMENTS = ('__module__', '__name__', '__qualname__', '__doc__',
                        '__annotations__')
@@ -40,12 +39,9 @@ def update_wrapper(wrapper,
         getattr(wrapper, attr).update(getattr(wrapped, attr, {}))
     
     wrapper.__wrapped__ = wrapped
-    # Return the wrapper so this can be used as a decorator via partial()
+    # Return the wrapper so this can be used as a decorator
     return wrapper
 
-################################################################################
-### LRU Cache function decorator
-################################################################################
 
 _CacheInfo = namedtuple("CacheInfo", ["hits", "misses", "maxsize", "currsize"])
 
@@ -86,13 +82,14 @@ def _make_key(args, kwds, typed,
         return key[0]
     return _HashedSeq(key)
 
+
 def lru_cache(maxsize=128, typed=False):
     """Least-recently-used cache decorator.
     Arguments to the cached function must be hashable.
     """
 
     # Users should only access the lru_cache through its public API:
-    #       cache_info, cache_clear, and f.__wrapped__
+    # cache_info, cache_clear, and f.__wrapped__
     
 
     # Constants shared by all lru cache instances
@@ -100,17 +97,16 @@ def lru_cache(maxsize=128, typed=False):
     make_key = _make_key         # build a key from the function arguments
     PREV, NEXT, KEY, RESULT = 0, 1, 2, 3   # names for the link fields
 
-    def decorating_function(user_function):
+    def decorating_function(user_function):  ## user_function = func
         cache = {}
         hits = misses = 0
         full = False
         cache_get = cache.get    # bound method to lookup a key or return None
         lock = RLock()           # because linkedlist updates aren't threadsafe
-        root = []                # root of the circular doubly linked list
-        root[:] = [root, root, None, None]     # initialize by pointing to self
+        root = []                # root of the circular doubly linked list(head)
+        root[:] = [root, root, None, None]     # initialize by pointing to self, one node at the point
 
         if maxsize == 0:
-
             def wrapper(*args, **kwds):
                 # No caching
                 nonlocal misses
@@ -119,7 +115,6 @@ def lru_cache(maxsize=128, typed=False):
                 return result
 
         elif maxsize is None:
-
             def wrapper(*args, **kwds):
                 # Simple caching without ordering or size limit
                 nonlocal hits, misses
@@ -142,14 +137,14 @@ def lru_cache(maxsize=128, typed=False):
                 key = make_key(args, kwds, typed)
                 
                 with lock:
-                    link = cache_get(key) ## four elements in a link
-                    print("the link is: ",link)
+                    link = cache_get(key)
+                    
                     if link is not None:
-                        # Move the link to the front of the circular queue
-                        
+                        # Move the link to the front of the circular linked list
                         link_prev, link_next, _key, result = link
                         link_prev[NEXT] = link_next
-                        link_next[PREV] = link_prev
+                        link_next[PREV] = link_prev  ## leave link alone
+                        
                         last = root[PREV]
                         last[NEXT] = root[PREV] = link
                         link[PREV] = last
@@ -167,7 +162,7 @@ def lru_cache(maxsize=128, typed=False):
                         # computed result and update the count of misses.
                         pass
                     elif full:
-                        # Use the old root to store the new key and result.
+                        # Use the oldroot to store the new key and result.
                         oldroot = root
                         oldroot[KEY] = key
                         oldroot[RESULT] = result
@@ -177,11 +172,11 @@ def lru_cache(maxsize=128, typed=False):
                         # update. That will prevent potentially arbitrary object
                         # clean-up code (i.e. __del__) from running while we're
                         # still adjusting the links.
-                        root = oldroot[NEXT]
+                        root = oldroot[NEXT]   ## the new root
+                        
                         oldkey = root[KEY]
                         oldresult = root[RESULT]
                         root[KEY] = root[RESULT] = None
-                        # Now update the cache dictionary.
                         del cache[oldkey]
                         # Save the potentially reentrant cache[key] assignment
                         # for last, after the root and links have been put in
@@ -216,12 +211,18 @@ def lru_cache(maxsize=128, typed=False):
 
     return decorating_function
 
-@lru_cache(maxsize=128)
-def fib(n):
-    if n < 2:
-        return n
-    return fib(n-1) + fib(n-2)
 
-[fib(n) for n in range(16)]
+if __name__ =="__main__":
+    abc = (1,2,3,4,"list")
+    key =   _HashedSeq(abc)   ## convert a tuple to a list
+    print(key,key.hashvalue)
+    
+    
+    @lru_cache(maxsize=128)
+    def fib(n):
+        if n < 2:
+            return n
+        return fib(n-1) + fib(n-2)
 
-print(fib.cache_info())
+    [fib(n) for n in range(100)]
+    print(fib.cache_info())
