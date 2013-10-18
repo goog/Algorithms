@@ -130,7 +130,6 @@ def lru_cache(maxsize=128, typed=False):
                 return result
 
         else:
-            ## maxsize is a constant
             def wrapper(*args, **kwds):
                 # Size limited caching that tracks accesses by recency
                 nonlocal root, hits, misses, full
@@ -148,12 +147,11 @@ def lru_cache(maxsize=128, typed=False):
                         last = root[PREV]
                         last[NEXT] = root[PREV] = link
                         link[PREV] = last
-                        link[NEXT] = root
+                        link[NEXT] = root   ## insert the link
                         hits += 1
                         return result
                 
                 result = user_function(*args, **kwds)
-                
                 with lock:
                     if key in cache:
                         # Getting here means that this same key was added to the
@@ -165,19 +163,20 @@ def lru_cache(maxsize=128, typed=False):
                         # Use the oldroot to store the new key and result.
                         oldroot = root
                         oldroot[KEY] = key
-                        oldroot[RESULT] = result
+                        oldroot[RESULT] = result    ## root key and value have been replaced.
                         # Empty the oldest link and make it the new root.
                         # Keep a reference to the old key and old result to
                         # prevent their ref counts from going to zero during the
                         # update. That will prevent potentially arbitrary object
                         # clean-up code (i.e. __del__) from running while we're
                         # still adjusting the links.
-                        root = oldroot[NEXT]   ## the new root
                         
+                        root = oldroot[NEXT]
                         oldkey = root[KEY]
                         oldresult = root[RESULT]
                         root[KEY] = root[RESULT] = None
                         del cache[oldkey]
+                        
                         # Save the potentially reentrant cache[key] assignment
                         # for last, after the root and links have been put in
                         # a consistent state.
