@@ -13,19 +13,20 @@ using namespace std;
 #include <iostream>
 #include <cstring>
 
+
 int main()
 {	char *name;
 
 	const char * newName = "google";
+	cout << "the size of content :" << sizeof(newName) << endl;
 	
-	cout << "the size of content :" << sizeof(*newName)<< endl;
 	
 	if (newName) {
 		int len = strlen(newName);
 		cout << len << endl;  // 6
 		name = new char[len+1]; //7
 		strcpy(name, newName);
-		cout << "The content size of name :" << sizeof(*name)<< endl;
+		//cout << "The content size of name :" << sizeof(name)/sizeof(name[0])<< endl;
 		cout << name << " : " << strlen(name) << endl;
 	}
 	return 0;
