@@ -87,7 +87,7 @@ stackElementT pop(stackT *stackP)
 
 int main()
 {
-	stackT s1;
+    stackT s1;
     StackInit(&s1, 10);
     push(&s1, 'Z');
     push(&s1,'A');
