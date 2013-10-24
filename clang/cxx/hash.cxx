@@ -77,7 +77,7 @@ public:
 	T* find(K key);
 	void erase(T *pos);
 	template <typename T1, typename K1>
-	friend ostream& operator<< (ostream& out, const Hashmap<T1,K1>& right);
+	friend ostream& operator<< (ostream& out, const Hashmap<T1,K1>& right); // overload to output new types of data;
 	
 private:
 	vector<vector<T> > table;
@@ -120,9 +120,16 @@ ostream& operator << (ostream& out, const Hashmap<T1,K1>& right)
 
 	for(int i =0 ; i< right.table.size();i++)
 		for(int j = 0; j < right.table[i].size();j++)
-		{   // need to overload << ;
-			out << "Bucket" << i << ",Record " << j <<"\n" << right.table[i][j] <<"\n\n";
+		{
+			out << "Bucket " << i << " ,Record " << j <<"\n" << right.table[i][j];
 		}	
+	return out;
+}
+
+
+ostream& operator << (ostream& out,Record right)
+{
+	out << right.getKey();
 	return out;
 }
 
@@ -133,10 +140,9 @@ int main()
 {
 	Hashmap<Record,string> myHash(50);
 	Record stu = Record("lucy","123",2);
-	cout << stu.getKey() << endl;
 	
 	myHash.insert(stu);
-	//cout << myHash;
+	cout << myHash << endl;
 	
 	return 0;
 }
