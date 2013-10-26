@@ -10,7 +10,7 @@ class Database {
 public:
 	Database();
 	~Database();
-	
+	// manage the records
 	Composer& AddComposer(std::string name, int in_yob , int rank1 = 10);
 	Composer& GetComposer(std::string name);
 	
@@ -20,7 +20,6 @@ public:
 	 void DisplayByRank();
 
 private:
-
 	Composer composers_[kMaxComposers];
     // Track the next slot in the array to place a new record.
 	int next_slot_;
@@ -32,6 +31,10 @@ Database::Database()
 	next_slot_ = 0;	
 }
 
+Database::~Database()
+{
+	std::cout << "deconstructor ..." << std::endl;	
+}
 
 Composer& Database::AddComposer(std::string name, int in_yob,int rank1)
 {
@@ -48,7 +51,7 @@ Composer& Database::AddComposer(std::string name, int in_yob,int rank1)
 
 }
 
-// can't return NULL;
+
 Composer& Database::GetComposer(std::string name)
 {
 	for(int i =0; i < next_slot_;i++)
@@ -62,33 +65,36 @@ Composer& Database::GetComposer(std::string name)
 
 void Database::DisplayAll()
 {
-	
 	for(int i =0; i < next_slot_;i++)
 		composers_[i].Display();
-
 }
 
 
-
-bool compare_on_descending_value(Composer& first, Composer& second)
+// const object 
+bool compare_on_descending_value(const Composer& first, const Composer& second)
 {
 	return first.getRank() > second.getRank();
 }
 
-
-void mysort( Composer* array, std::size_t num_elements)
+// the effient number of num_elements
+void mysort(Composer* array, std::size_t num_elements)
 {
 	std::sort(array, array+num_elements, compare_on_descending_value);
+	std::cout << "sort completed ." << std::endl;
 }
+
 
 void Database::DisplayByRank()
 {
-	Composer composers_cp[kMaxComposers];
-	memcpy(composers_cp,composers_, sizeof(composers_));
-	// sort by the rank field
-	mysort(composers_cp,next_slot_ );
+	Composer* pcomposers = new Composer[kMaxComposers];
+	std::cout <<"size of " << sizeof(composers_) << std::endl;
+	memcpy(pcomposers,composers_, sizeof(composers_));
 	
+	// sort by the rank field
+	mysort(pcomposers,next_slot_);
 	for(int i =0; i < next_slot_;i++)
-		composers_cp[i].Display();
+		pcomposers[i].Display();
+		
+	delete [] pcomposers;
 		
 }

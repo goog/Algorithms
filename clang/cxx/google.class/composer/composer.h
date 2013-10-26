@@ -13,7 +13,7 @@ public:
 	std::string get_name();
 	
 	void set_rank(int rank1);
-	int getRank();
+	int getRank () const;
 	
 	void set_yob(int birthday);
 	int get_yob();
@@ -32,8 +32,7 @@ private:
 };
 
 Composer::Composer()
-{
-	
+{	
 };
 
 Composer::Composer(std::string na,int birthday,int rank1)
@@ -62,7 +61,7 @@ void Composer::set_rank(int rank1 = kDefaultRanking)
 	rank = rank1;
 }
 
-int Composer::getRank()
+int Composer::getRank() const
 {
 	return rank;
 } 
