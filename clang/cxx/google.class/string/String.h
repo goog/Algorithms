@@ -8,18 +8,18 @@ class String
 {
 public:
   //  constructors and destructor
-  String() : len(0), theChars(NULL) { }
-  String(char *);
-  String(String&);
+  String() : theChars(NULL) { }
+  String(const char *);
+  String(const String&);
   ~String();
-  //  accessors
-  String operator+(const String&) const;
   //  mutators
   String& operator=(const String&);
-  const char * get();
+  const char * const get();
+  friend ostream& operator << (ostream& out,String right);
+
+  
 private:
   char *theChars;
-  int len;
 };
 
 #endif
