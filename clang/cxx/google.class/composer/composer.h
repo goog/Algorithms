@@ -7,7 +7,6 @@ class Composer
 public:
 	Composer();
 	Composer(std::string na,int birtherday,int rank1);
-	~Composer();
 	
 	void set_name(std::string na);
 	std::string get_name();
@@ -32,18 +31,19 @@ private:
 };
 
 Composer::Composer()
-{	
-};
+{
+	name = "Test";
+	yob = 2010;
+	rank = 4;
+}
 
 Composer::Composer(std::string na,int birthday,int rank1)
 {
-	name = na;yob = birthday;rank = rank1;
+	name = na;
+	yob = birthday;
+	rank = rank1;
 };
 
-Composer::~Composer()
-{
-	
-};
 
 void Composer::set_name(std::string na)
 {
@@ -95,5 +95,4 @@ void Composer::Demote(int increment)
 void Composer::Display()
 {
 	std::cout << "The composer name : " << name <<" rank: " << rank << " . " << std::endl;
-	
 }

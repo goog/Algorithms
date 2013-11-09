@@ -3,15 +3,10 @@
  * 
  * Copyright 2013 googcheng <googcheng@gmail.com>
  * 
- * For SIT, it obeys "copyright reserved".
  * 
  * 
  */
 
-
-// test_composer.cpp, Maggie Johnson
-//
-// This program tests the Composer class.
 
 #include <iostream>
 #include "composer.h"
@@ -20,14 +15,14 @@ using namespace std;
 
 int main ()
 {
- cout << endl << "Testing the Composer class." << endl << endl;
+ cout << "Testing the Composer class." << endl;
 
  Composer composer;
  composer.set_name("Ludwig van");
  composer.set_yob(1770);
  composer.set_rank();
- cout << composer.getRank() << endl;
- composer.Promote(2);
- composer.Demote(1);
- composer.Display();
+	cout << composer.getRank() << endl;
+	composer.Promote(2);
+	composer.Demote(1);
+	composer.Display();
 }

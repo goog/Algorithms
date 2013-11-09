@@ -9,15 +9,15 @@ const int kMaxComposers = 100;
 class Database {
 public:
 	Database();
-	~Database();
+	//~Database();
 	// manage the records
 	Composer& AddComposer(std::string name, int in_yob , int rank1 = 10);
-	Composer& GetComposer(std::string name);
+	int GetComposer(std::string name);
 	
-	 // Display all composers in the database.
-	 void DisplayAll();
-	 // Sort database records by rank and then display all.
-	 void DisplayByRank();
+	// Display all composers in the database.
+	void DisplayAll();
+	// Sort database records by rank and then display all.
+	void DisplayByRank();
 
 private:
 	Composer composers_[kMaxComposers];
@@ -31,15 +31,11 @@ Database::Database()
 	next_slot_ = 0;	
 }
 
-Database::~Database()
-{
-	std::cout << "deconstructor ..." << std::endl;	
-}
 
 Composer& Database::AddComposer(std::string name, int in_yob,int rank1)
 {
 	
-	Composer cp = Composer(name,in_yob,rank1);
+	Composer cp(name,in_yob,rank1);
 	if(next_slot_ >=100)
 		{
 			std::cout << "array length exceed.";
@@ -52,14 +48,14 @@ Composer& Database::AddComposer(std::string name, int in_yob,int rank1)
 }
 
 
-Composer& Database::GetComposer(std::string name)
+int Database::GetComposer(std::string name)
 {
 	for(int i =0; i < next_slot_;i++)
 		{
-			if (composers_[i].get_name() == name)
-				return composers_[i];
+			if(! name.compare(composers_[i].get_name()))
+				return i;
 		}
-	throw "No found.";
+	return -1;
 }
 
 
@@ -70,7 +66,7 @@ void Database::DisplayAll()
 }
 
 
-// const object 
+
 bool compare_on_descending_value(const Composer& first, const Composer& second)
 {
 	return first.getRank() > second.getRank();
@@ -86,15 +82,12 @@ void mysort(Composer* array, std::size_t num_elements)
 
 void Database::DisplayByRank()
 {
-	Composer* pcomposers = new Composer[kMaxComposers];
-	std::cout <<"size of " << sizeof(composers_) << std::endl;
+	Composer pcomposers[kMaxComposers];
 	memcpy(pcomposers,composers_, sizeof(composers_));
 	
 	// sort by the rank field
 	mysort(pcomposers,next_slot_);
 	for(int i =0; i < next_slot_;i++)
 		pcomposers[i].Display();
-		
-	delete [] pcomposers;
 		
 }
