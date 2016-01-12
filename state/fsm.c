@@ -50,7 +50,7 @@ int main()
         switch (g_state)
         {
             case 0:
-                if(g_state == 0)
+                
                 {
                     g_state = 1; // into idle state
                 }
@@ -71,6 +71,6 @@ int main()
     }
 
     printf("the final state is %d .\n", g_state);
-    
+
     return 0;
 }
