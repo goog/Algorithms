@@ -1,0 +1,22 @@
+#include<stdio.h>
+
+
+
+int main()
+{
+    int a=1;
+    switch(a)
+    {   
+        int b=20;
+        printf("abcd.\n");
+        case 1: 
+              printf("in case 1:\n");
+              printf("b is %d\n",b);
+              break;
+        default:printf("b is %d\n",b);
+                  break;
+    }
+    
+
+    return 0;
+}
