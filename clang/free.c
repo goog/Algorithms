@@ -1,14 +1,3 @@
-/*
- * free.c
- * 
- * Copyright 2013 googcheng <googcheng@gmail.com>
- * 
- * For SIT, it obeys "copyright reserved".
- * 
- * 
- */
-
-
 #include <stdio.h>
 #include <stdlib.h>
 
