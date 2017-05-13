@@ -1,76 +1,50 @@
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <ctype.h>
 
-
-float stof(const char *s)
+float my_strtof(const char *str)
 {
-    
-    int sign = 1;
 
-    long double factor = 0.1f;
-    int seen_dot = 0;
-    int single_val = 0;
-    long double result = 0;
-    int int_res = 0;
+    int flag = 0;
+    float result = 0;
+    float factor = 1;
     char ch;
 
-    while(*s)
+    while(ch = *str)
     {
-
-        ch = *s;
-        printf("char: %c\n", ch);
-
-        if(ch == '-')
+        if(isdigit(ch))
         {
-            sign = -1;
-        }
-        else if(ch == '.')
-        {
-            seen_dot = 1;
-            factor = 1.0f;
-
-            int_res = result;  // save the integer result
-            result = 0;
-        }
-        else if(isdigit(ch))
-        {
-            single_val = ch - '0';
-
-            if(seen_dot == 1)  // float part
-            {
-                factor /= 10.0f;
-                result = result + single_val * factor;
-            }
-            else
-            {
-                // for integer part
+            if(flag == 1)
                 factor *= 10;
-                result = result * factor + single_val;
-            }
-            
-            printf("the current factor is %Lf.\n", factor);
 
+            result = result*10 + ch - '0';
+ 
+        }
+        else if(ch = '.')
+        {
+            flag = 1;
         }
         else
         {
-            perror("Invalid input");
+            printf("invalid input.\n");
             exit(EXIT_FAILURE);
         }
-
-        s++;
+        
+        str++;
     }
 
 
-    return sign * (int_res + result);
-}
+    return result/factor;
 
+
+}
 
 
 int main()
 {
-    char *str = "-32.141592653";
-    printf("the result is %f.\n", stof(str)); // custom
-    printf("the result is %f.\n", strtof(str, NULL));
+
+    float a = my_strtof("0.00314");
+    printf("the a is %f.\n", a);
 
 }

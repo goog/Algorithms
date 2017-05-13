@@ -54,6 +54,6 @@ void heapSORT(int *a,int n)
 
 void main(void)
 {
-	int a[5] = {23,15,34,12,11};
-	heapSORT(a,5);
+	int a[10] = {8,4,2,3,5,1,6,9,0,7}; //{23,15,34,12,11};
+	heapSORT(a,10);
 }
